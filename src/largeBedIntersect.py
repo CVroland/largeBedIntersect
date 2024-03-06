@@ -896,7 +896,7 @@ def main():
             args.output=sys.stdout
         args.type=IntersectTypeToLong[args.type]
         bedAType, bedBType=intersectTypeToBedTypes(args.type, args.aType, args.bType)
-        with get_handle(args.output, mode="w") as f:
+        with get_handle(args.output, mode="w", compression='infer') as f:
             for chunk in intersectBed(args.bedA, args.bedB, bedAType, bedBType, args.indexed, args.strand, args.chunksize):
                 chunk.to_csv(f.handle, sep="\t", index=False, mode="a", header=False)
 
