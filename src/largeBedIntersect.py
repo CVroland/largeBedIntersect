@@ -626,7 +626,7 @@ def indexBed(bed, bedType="BED", stranded=False, chunksize=10**5):
 
 
 
-def _intersectBed(bedA, index, bedType="BED", stranded=False, chunksize=10**5)->Generator[pd.DataFrame, None, None]:
+def _intersectBed(bedA, index, bedType="BED", stranded=False, invertMatch=False, chunksize=10**5)->Generator[pd.DataFrame, None, None]:
     """
     Intersect a BED file with an index.
 
@@ -640,6 +640,10 @@ def _intersectBed(bedA, index, bedType="BED", stranded=False, chunksize=10**5)->
         Type of the BED file.
     stranded : bool
         If the strand is considered.
+    invertMatch : bool
+        Invert the match. Return the regions that do not intersect.
+    chunksize : int
+        Size of the chunks to read the BED files.
     """
     if verbose : print(f"Intersecting", file=sys.stderr)
     bedDtype=getBedDtype(bedType, stranded)
@@ -667,9 +671,11 @@ def _intersectBed(bedA, index, bedType="BED", stranded=False, chunksize=10**5)->
         start=chunk["start"].to_numpy()
         end=chunk["end"].to_numpy()
         maskArray=vIndexIntersect(index, chrStrand, start, end)
+        if invertMatch:
+            maskArray=~maskArray
         yield chunk[maskArray]
 
-def intersectBed(bedA, bedB, bedAType="BED", bedBType="BED", indexed=False, stranded=False, chunksize=10**5)->Generator[pd.DataFrame, None, None]:
+def intersectBed(bedA, bedB, bedAType="BED", bedBType="BED", indexed=False, stranded=False, invertMatch=False, chunksize=10**5)->Generator[pd.DataFrame, None, None]:
     """
     Intersect two BED files.
 
@@ -685,12 +691,18 @@ def intersectBed(bedA, bedB, bedAType="BED", bedBType="BED", indexed=False, stra
         Type of the second BED file.
     stranded : bool
         If the strand is considered.
+    indexed : bool
+        If the second BED file is indexed.
+    invertMatch : bool
+        Invert the match. Return the regions that do not intersect.
+    chunksize : int
+        Size of the chunks to read the BED files.
     """
     if indexed:
         index=loadIndex(bedB, bedBType)
     else :
         index=indexBed(bedB, bedBType, stranded, chunksize)
-    return _intersectBed(bedA, index, bedAType, stranded, chunksize)
+    return _intersectBed(bedA, index, bedType=bedAType, stranded=stranded, invertMatch=invertMatch, chunksize=chunksize)
 
 
 def _intersectTypeToBedTypes(pos:str, fileType:str)->tuple[BedType]:
@@ -862,7 +874,7 @@ def main():
     intersectParser.add_argument("--aType", type=str, default="bed", help="Type of the first BED file. It can be 'bed' or 'bedpe'. Default is 'bed'.")
     intersectParser.add_argument("--bType", type=str, default="bed", help="Type of the second BED file. It can be 'bed' or 'bedpe'. Default is 'bed'.")
     intersectParser.add_argument("--chunksize", type=int, default=10**5, help="Size of the chunks to read the BED files. Default is 10^5.")
-    intersectParser.add_argument("-v", "--verbose", action="store_true", help="Verbose mode.")
+    intersectParser.add_argument("-V", "--verbose", action="store_true", help="Verbose mode.")
 
     # index command
     indexBedParser=subParsers.add_parser("index", help="Index a BED file. Return the index in a compressed numpy npz file.")
@@ -872,7 +884,8 @@ def main():
     indexBedParser.add_argument("--bType", type=str, default="bed", help="Type of the BED file. It can be 'bed' or 'bedpe'. Default is 'bed'.")
     indexBedParser.add_argument("--type", type=str, default="first", help="Which part of the BEDPE file to index. Can be 'first', 'second' or 'both'. Default is 'first'.")
     indexBedParser.add_argument("--chunksize", type=int, default=10**5, help="Size of the chunks to read the BED files. Default is 10^5.")
-    indexBedParser.add_argument("-v", "--verbose", action="store_true", help="Verbose mode.")
+    indexBedParser.add_argument("-v", "--invertMatch", action="store_true", help="Invert the match. Return the regions that do not intersect.")
+    indexBedParser.add_argument("-V", "--verbose", action="store_true", help="Verbose mode.")
 
 
     args = parser.parse_args()
@@ -897,7 +910,7 @@ def main():
         args.type=IntersectTypeToLong[args.type]
         bedAType, bedBType=intersectTypeToBedTypes(args.type, args.aType, args.bType)
         with get_handle(args.output, mode="w", compression='infer') as f:
-            for chunk in intersectBed(args.bedA, args.bedB, bedAType, bedBType, args.indexed, args.strand, args.chunksize):
+            for chunk in intersectBed(args.bedA, args.bedB, bedAType=bedAType, bedBType=bedBType, indexed=args.indexed, stranded=args.strand, chunksize=args.chunksize, invertMatch=args.invertMatch):
                 chunk.to_csv(f.handle, sep="\t", index=False, mode="a", header=False)
 
 if __name__ == "__main__":
