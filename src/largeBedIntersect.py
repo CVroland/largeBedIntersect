@@ -873,6 +873,7 @@ def main():
     intersectParser.add_argument("--type", type=str, default="first_first", help="Which parts of the intervals to compare for BEDPE files. Can be 'first_first' (or 'ff'), 'second_second' (or 'ss'), 'first_second' (or 'fs'), 'second_first' (or 'sf'). Default is 'first_first'.")
     intersectParser.add_argument("--aType", type=str, default="bed", help="Type of the first BED file. It can be 'bed' or 'bedpe'. Default is 'bed'.")
     intersectParser.add_argument("--bType", type=str, default="bed", help="Type of the second BED file. It can be 'bed' or 'bedpe'. Default is 'bed'.")
+    intersectParser.add_argument("-v", "--invertMatch", action="store_true", help="Invert the match. Return the regions that do not intersect.")
     intersectParser.add_argument("--chunksize", type=int, default=10**5, help="Size of the chunks to read the BED files. Default is 10^5.")
     intersectParser.add_argument("-V", "--verbose", action="store_true", help="Verbose mode.")
 
@@ -884,7 +885,6 @@ def main():
     indexBedParser.add_argument("--bType", type=str, default="bed", help="Type of the BED file. It can be 'bed' or 'bedpe'. Default is 'bed'.")
     indexBedParser.add_argument("--type", type=str, default="first", help="Which part of the BEDPE file to index. Can be 'first', 'second' or 'both'. Default is 'first'.")
     indexBedParser.add_argument("--chunksize", type=int, default=10**5, help="Size of the chunks to read the BED files. Default is 10^5.")
-    indexBedParser.add_argument("-v", "--invertMatch", action="store_true", help="Invert the match. Return the regions that do not intersect.")
     indexBedParser.add_argument("-V", "--verbose", action="store_true", help="Verbose mode.")
 
 
